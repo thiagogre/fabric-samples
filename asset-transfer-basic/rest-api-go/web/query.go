@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -21,5 +22,22 @@ func (setup OrgSetup) Query(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Error: %s", err)
 		return
 	}
-	fmt.Fprintf(w, "Response: %s", evaluateResponse)
+
+	// Parse the JSON response into a GenericResponse interface
+	var genericResponse interface{}
+	err = json.Unmarshal(evaluateResponse, &genericResponse)
+	if err != nil {
+		http.Error(w, "Failed to parse response JSON", http.StatusInternalServerError)
+		return
+	}
+
+	// Marshal the GenericResponse struct back into a JSON string
+	jsonEncodedResponse, err := json.Marshal(genericResponse)
+	if err != nil {
+		http.Error(w, "Failed to encode response JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonEncodedResponse)
 }
