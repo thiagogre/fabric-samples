@@ -1,40 +1,71 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 )
 
+// InvokeRequest representa a estrutura do objeto JSON que contém os dados da requisição de invocação.
+type InvokeRequest struct {
+	ChaincodeID string   `json:"chaincodeid"`
+	ChannelID   string   `json:"channelid"`
+	Function    string   `json:"function"`
+	Args        []string `json:"args"`
+}
+
+// InvokeResponse representa a estrutura do objeto JSON que será retornado na resposta.
+type InvokeResponse struct {
+	TransactionID string `json:"transaction_id"`
+	Result        string `json:"result"`
+}
+
 // Invoke handles chaincode invoke requests.
 func (setup *OrgSetup) Invoke(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received Invoke request")
-	if err := r.ParseForm(); err != nil {
-		fmt.Fprintf(w, "ParseForm() err: %s", err)
+
+	// Decodificar o objeto JSON
+	var invokeReq InvokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&invokeReq); err != nil {
+		http.Error(w, "Failed to parse request body", http.StatusBadRequest)
 		return
 	}
-	chainCodeName := r.FormValue("chaincodeid")
-	channelID := r.FormValue("channelid")
-	function := r.FormValue("function")
-	args := r.Form["args"]
-	fmt.Printf("channel: %s, chaincode: %s, function: %s, args: %s\n", channelID, chainCodeName, function, args)
-	network := setup.Gateway.GetNetwork(channelID)
-	contract := network.GetContract(chainCodeName)
-	txn_proposal, err := contract.NewProposal(function, client.WithArguments(args...))
+
+	fmt.Printf("channel: %s, chaincode: %s, function: %s, args: %s\n", invokeReq.ChannelID, invokeReq.ChaincodeID, invokeReq.Function, invokeReq.Args)
+
+	network := setup.Gateway.GetNetwork(invokeReq.ChannelID)
+	contract := network.GetContract(invokeReq.ChaincodeID)
+	txnProposal, err := contract.NewProposal(invokeReq.Function, client.WithArguments(invokeReq.Args...))
 	if err != nil {
-		fmt.Fprintf(w, "Error creating txn proposal: %s", err)
+		http.Error(w, fmt.Sprintf("Error creating txn proposal: %s", err), http.StatusInternalServerError)
 		return
 	}
-	txn_endorsed, err := txn_proposal.Endorse()
+	txnEndorsed, err := txnProposal.Endorse()
 	if err != nil {
-		fmt.Fprintf(w, "Error endorsing txn: %s", err)
+		http.Error(w, fmt.Sprintf("Error endorsing txn: %s", err), http.StatusInternalServerError)
 		return
 	}
-	txn_committed, err := txn_endorsed.Submit()
+	txnCommitted, err := txnEndorsed.Submit()
 	if err != nil {
-		fmt.Fprintf(w, "Error submitting transaction: %s", err)
+		http.Error(w, fmt.Sprintf("Error submitting transaction: %s", err), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "Transaction ID : %s Response: %s", txn_committed.TransactionID(), txn_endorsed.Result())
+
+	// Response struct
+	response := InvokeResponse{
+		TransactionID: txnCommitted.TransactionID(),
+		Result:        string(txnEndorsed.Result()), // Convertendo o slice de bytes para string
+	}
+
+	// parse to JSON
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonResponse)
 }
