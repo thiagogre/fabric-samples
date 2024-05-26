@@ -10,6 +10,7 @@ require (
 require (
 	github.com/hyperledger/fabric-protos-go-apiv2 v0.3.3 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
+	github.com/rs/cors v1.11.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect

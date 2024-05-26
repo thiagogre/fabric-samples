@@ -69,6 +69,9 @@ func (setup OrgSetup) newIdentity() *identity.X509Identity {
 		panic(err)
 	}
 
+	// decodedCredentials := string(id.Credentials())
+	// fmt.Println("Decoded string:", decodedCredentials)
+
 	return id
 }
 

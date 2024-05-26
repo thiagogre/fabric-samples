@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/rs/cors"
+
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 )
 
@@ -22,10 +24,14 @@ type OrgSetup struct {
 
 // Serve starts http web server.
 func Serve(setups OrgSetup) {
+	// Enable CORS middleware
+	handler := cors.Default().Handler(http.DefaultServeMux)
+
 	http.HandleFunc("/query", setups.Query)
 	http.HandleFunc("/invoke", setups.Invoke)
-	fmt.Println("Listening (http://localhost:3000/)...")
-	if err := http.ListenAndServe(":3000", nil); err != nil {
+
+	fmt.Println("Listening (http://localhost:3001/)...")
+	if err := http.ListenAndServe(":3001", handler); err != nil {
 		fmt.Println(err)
 	}
 }

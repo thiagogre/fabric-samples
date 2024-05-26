@@ -3,6 +3,7 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -21,6 +22,19 @@ type Asset struct {
 	ID             string `json:"ID"`
 	Owner          string `json:"Owner"`
 	Size           int    `json:"Size"`
+}
+
+// HistoryQueryResult structure used for returning result of history query
+type HistoryQueryResult struct {
+	Record    *Asset    `json:"record"`
+	TxId      string    `json:"txId"`
+	Timestamp time.Time `json:"timestamp"`
+	IsDelete  bool      `json:"isDelete"`
+}
+
+// DocsResponse structure used for returning docs object instead of array
+type DocsResponse struct {
+    Docs []interface{} `json:"docs"`
 }
 
 // InitLedger adds a base set of assets to the ledger
@@ -166,7 +180,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 }
 
 // GetAllAssets returns all assets found in world state
-func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) ([]*Asset, error) {
+func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) (*DocsResponse, error) {
 	// range query with empty string for startKey and endKey does an
 	// open-ended query of all assets in the chaincode namespace.
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
@@ -175,7 +189,7 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 	}
 	defer resultsIterator.Close()
 
-	var assets []*Asset
+	var records []interface{}
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
@@ -187,8 +201,62 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 		if err != nil {
 			return nil, err
 		}
-		assets = append(assets, &asset)
+		records = append(records, &asset)
 	}
 
-	return assets, nil
+	docsResponse := DocsResponse{
+		Docs: records,
+	}
+
+	return &docsResponse, nil
+}
+
+// GetAssetRecords returns the chain of custody for an asset since issuance.
+func (s *SmartContract) GetAssetRecords(ctx contractapi.TransactionContextInterface, id string) (*DocsResponse, error) {
+	resultsIterator, err := ctx.GetStub().GetHistoryForKey(id)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	var records []interface{}
+	for resultsIterator.HasNext() {
+		response, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var asset Asset
+		if len(response.Value) > 0 {
+			err = json.Unmarshal(response.Value, &asset)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			asset = Asset{
+				ID: id,
+			}
+		}
+
+		timestampProto := response.Timestamp
+        err = timestampProto.CheckValid()
+        if err != nil {
+            return nil, err
+        }
+        timestamp := timestampProto.AsTime()
+
+		record := HistoryQueryResult{
+			TxId:      response.TxId,
+			Timestamp: timestamp,
+			Record:    &asset,
+			IsDelete:  response.IsDelete,
+		}
+		records = append(records, record)
+	}
+
+	docsResponse := DocsResponse{
+		Docs: records,
+	}
+
+	return &docsResponse, nil
 }

@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "rest-api-go"
+		},
+		{
+			"path": "frontend-react"
+		},
+		{
+			"path": "chaincode-go"
+		}
+	],
+	"settings": {}
+}
