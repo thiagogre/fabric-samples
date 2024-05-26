@@ -11,18 +11,23 @@ const parsePayload = (payload: string): string => {
 	}
 };
 
-const Event = (props: EventType) => {
-	const { BlockNumber, TransactionID, ChaincodeName, EventName, Payload } =
-		props;
+const Event = (props: EventType & { isBlockHidden?: boolean }) => {
+	const {
+		BlockNumber,
+		TransactionID,
+		ChaincodeName,
+		EventName,
+		Payload,
+		isBlockHidden = false,
+	} = props;
 
 	return (
-		<div
-			className="flex-shrink-0 border border-gray-300 rounded-lg p-4 m-2"
-			style={{ minWidth: "300px" }}
-		>
-			<h2 className="text-lg font-semibold mb-2">
-				Block Number: {BlockNumber}
-			</h2>
+		<div className="flex-1 border border-gray-300 rounded-lg p-4 m-2 bg-white shadow-md">
+			{!isBlockHidden && (
+				<h2 className="text-lg font-semibold mb-2">
+					Block Number: {BlockNumber}
+				</h2>
+			)}
 			<p>
 				<span className="font-semibold">Transaction ID:</span>{" "}
 				{TransactionID}
