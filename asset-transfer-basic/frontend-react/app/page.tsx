@@ -9,9 +9,12 @@ import { wait } from "../utils/promise";
 import Carousel from "../components/carousel/Carousel";
 import Button from "../components/button/Button";
 import ImageTable from "../components/imageTable/ImageTable";
+import Event from "../components/event/Event";
+import { Event as EventType } from "@/components/event/types";
 
 const App: React.FC = () => {
 	const [data, setData] = useState<any>(null);
+	const [events, setEvents] = useState<EventType[] | []>([]);
 
 	const images = [
 		"https://via.placeholder.com/600x400",
@@ -102,6 +105,15 @@ const App: React.FC = () => {
 		}
 	};
 
+	const getEvents = async () => {
+		try {
+			const req = await fetch("http://localhost:3001/events");
+			setEvents((await req.json())?.docs ?? []);
+		} catch (error) {
+			console.error("Error fetching events: ", error);
+		}
+	};
+
 	return (
 		<div className="min-h-screen flex flex-col items-center justify-center space-y-8 p-4">
 			<h1 className="text-4xl font-bold text-center">Celulares</h1>
@@ -112,6 +124,14 @@ const App: React.FC = () => {
 			</div>
 			<div className="mt-8">
 				<Button onClick={handleClick}>Primary Button</Button>
+			</div>
+			<div className="mt-8">
+				<Button onClick={getEvents}>Events</Button>
+			</div>
+			<div>
+				{events.toReversed().map((event, index) => (
+					<Event key={index} {...event} />
+				))}
 			</div>
 		</div>
 	);
