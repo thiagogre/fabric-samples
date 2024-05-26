@@ -21,7 +21,7 @@ const App = () => {
 					args: [uniqueId, "red", "54", "Tom", "13005"],
 				});
 
-				await wait(5000);
+				await wait(1000);
 
 				await invoke({
 					channelid: "mychannel",
@@ -30,7 +30,7 @@ const App = () => {
 					args: [uniqueId, "red", "54", "X", "13005"],
 				});
 
-				await wait(5000);
+				await wait(1000);
 
 				await invoke({
 					channelid: "mychannel",
@@ -39,7 +39,7 @@ const App = () => {
 					args: [uniqueId, "red", "54", "Y", "13005"],
 				});
 
-				await wait(5000);
+				await wait(1000);
 
 				await invoke({
 					channelid: "mychannel",
@@ -48,7 +48,7 @@ const App = () => {
 					args: [uniqueId, "red", "54", "Z", "13005"],
 				});
 
-				await wait(5000);
+				await wait(1000);
 
 				await invoke({
 					channelid: "mychannel",
@@ -57,7 +57,7 @@ const App = () => {
 					args: [uniqueId],
 				});
 
-				await wait(5000);
+				await wait(1000);
 
 				const responseData = await query({
 					channelid: "mychannel",
