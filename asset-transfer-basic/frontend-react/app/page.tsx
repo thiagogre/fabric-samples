@@ -117,21 +117,27 @@ const App: React.FC = () => {
 	return (
 		<div className="min-h-screen flex flex-col items-center justify-center space-y-8 p-4">
 			<h1 className="text-4xl font-bold text-center">Celulares</h1>
-			{JSON.stringify(data)}
 			<div className="flex items-center justify-center space-x-8">
 				<Carousel images={images} />
 				<ImageTable data={imageData} />
 			</div>
-			<div className="mt-8">
-				<Button onClick={handleClick}>Primary Button</Button>
-			</div>
-			<div className="mt-8">
-				<Button onClick={getEvents}>Events</Button>
-			</div>
-			<div>
-				{events.toReversed().map((event, index) => (
-					<Event key={index} {...event} />
-				))}
+			<div className="flex flex-col md:flex-row items-start justify-center space-y-8 space-x-8 mt-8 w-full">
+				<div className="mt-8 flex flex-col items-center space-y-4">
+					<Button onClick={handleClick}>All Asset States</Button>
+					{data && (
+						<pre className="whitespace-pre-wrap overflow-auto p-2 border border-gray-300 rounded-md bg-gray-100">
+							{JSON.stringify(data, null, 2)}
+						</pre>
+					)}
+				</div>
+				<div className="mt-8 flex flex-col items-center space-y-4">
+					<Button onClick={getEvents}>Events</Button>
+					<div>
+						{events.toReversed().map((event, index) => (
+							<Event key={index} {...event} />
+						))}
+					</div>
+				</div>
 			</div>
 		</div>
 	);
