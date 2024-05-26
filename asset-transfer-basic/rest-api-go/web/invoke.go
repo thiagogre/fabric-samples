@@ -85,19 +85,11 @@ func (setup *OrgSetup) Invoke(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonResponse)
 
-	// Replay events from the block containing the first transaction
+	// start a new goroutine
 	go replayChaincodeEvents(setup.Context, network, invokeReq.ChaincodeID, status.BlockNumber)
 }
 
-func formatJSON(data []byte) string {
-	var result bytes.Buffer
-	if err := json.Indent(&result, data, "", "  "); err != nil {
-		fmt.Printf("Failed to parse JSON: %v", err)
-		return string(data)
-	}
-	return result.String()
-}
-
+// Replay events from the block containing the first transaction
 func replayChaincodeEvents(ctx context.Context, network *client.Network, chaincodeID string, startBlock uint64) {
 	fmt.Println("\n*** Start chaincode event replay")
 
@@ -108,12 +100,17 @@ func replayChaincodeEvents(ctx context.Context, network *client.Network, chainco
 	}
 
 	timeout := time.After(30 * time.Second) // Set a timeout for event replay
+	var eventsBuffer bytes.Buffer
 
 	for {
 		select {
 		case <-timeout:
 			fmt.Println("Event replay timeout reached")
-			return
+			// Write buffer content to the file
+			if err := writeBufferToFile(&eventsBuffer, "events.log"); err != nil {
+				fmt.Println("Error writing buffer to file:", err)
+				return
+			}
 
 		case event, ok := <-events:
 			if !ok {
@@ -121,13 +118,10 @@ func replayChaincodeEvents(ctx context.Context, network *client.Network, chainco
 				return
 			}
 
-			writeEventToFile(event, "events.json")
-			if err != nil {
-				fmt.Println("File error")
-				return
-			}
+			// writeEventToFile(event, "events.json")
+			writeEventToBuffer(event, &eventsBuffer)
 
-			fmt.Printf("\n<-- Replayed event payload %s\n", formatJSON(event.Payload))
+			fmt.Printf("\n<-- Replayed event payload %s\n", event.Payload)
 
 			// // Example condition to stop listening; modify as needed.
 			// if event.EventName == "DeleteAsset" {
@@ -142,25 +136,40 @@ func replayChaincodeEvents(ctx context.Context, network *client.Network, chainco
 	}
 }
 
-func writeEventToFile(event *client.ChaincodeEvent, filename string) error {
+// Write the chaincode event to a buffer
+func writeEventToBuffer(event *client.ChaincodeEvent, buffer *bytes.Buffer) error {
 	// Marshal the event into JSON
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	// Add a separator (newline) to the end of the event bytes
-	eventBytes = append(eventBytes, ',')
+	// Write the event bytes to the buffer
+	_, err = buffer.Write(eventBytes)
+	if err != nil {
+		return err
+	}
 
-	// Open the file in append mode
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	// Add a newline separator between events
+	_, err = buffer.WriteString("\n")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Write the buffer content to a new file
+func writeBufferToFile(buffer *bytes.Buffer, filename string) error {
+	// Create a new file or truncate an existing file
+	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	// Write the event bytes to the file
-	_, err = file.Write(eventBytes)
+	// Write the buffer content to the file
+	_, err = buffer.WriteTo(file)
 	if err != nil {
 		return err
 	}
