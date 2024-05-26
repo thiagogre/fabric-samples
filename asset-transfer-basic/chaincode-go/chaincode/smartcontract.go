@@ -34,7 +34,7 @@ type HistoryQueryResult struct {
 
 // DocsResponse structure used for returning docs object instead of array
 type DocsResponse struct {
-    Docs []interface{} `json:"docs"`
+	Docs []interface{} `json:"docs"`
 }
 
 // InitLedger adds a base set of assets to the ledger
@@ -63,13 +63,22 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 	return nil
 }
 
+func (s *SmartContract) readState(ctx contractapi.TransactionContextInterface, id string) ([]byte, error) {
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from world state: %w", err)
+	}
+	if assetJSON == nil {
+		return nil, fmt.Errorf("the asset %s does not exist", id)
+	}
+
+	return assetJSON, nil
+}
+
 // CreateAsset issues a new asset to the world state with given details.
 func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface, id string, color string, size int, owner string, appraisedValue int) error {
-	exists, err := s.AssetExists(ctx, id)
-	if err != nil {
-		return err
-	}
-	if exists {
+	exists, err := s.readState(ctx, id)
+	if err == nil && exists != nil {
 		return fmt.Errorf("the asset %s already exists", id)
 	}
 
@@ -85,17 +94,15 @@ func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface,
 		return err
 	}
 
+	ctx.GetStub().SetEvent("CreateAsset", assetJSON)
 	return ctx.GetStub().PutState(id, assetJSON)
 }
 
 // ReadAsset returns the asset stored in the world state with given id.
 func (s *SmartContract) ReadAsset(ctx contractapi.TransactionContextInterface, id string) (*Asset, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
+	assetJSON, err := s.readState(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read from world state: %v", err)
-	}
-	if assetJSON == nil {
-		return nil, fmt.Errorf("the asset %s does not exist", id)
+		return nil, err
 	}
 
 	var asset Asset
@@ -109,12 +116,9 @@ func (s *SmartContract) ReadAsset(ctx contractapi.TransactionContextInterface, i
 
 // UpdateAsset updates an existing asset in the world state with provided parameters.
 func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface, id string, color string, size int, owner string, appraisedValue int) error {
-	exists, err := s.AssetExists(ctx, id)
+	_, err := s.readState(ctx, id)
 	if err != nil {
 		return err
-	}
-	if !exists {
-		return fmt.Errorf("the asset %s does not exist", id)
 	}
 
 	// overwriting original asset with new asset
@@ -130,30 +134,19 @@ func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface,
 		return err
 	}
 
+	ctx.GetStub().SetEvent("UpdateAsset", assetJSON)
 	return ctx.GetStub().PutState(id, assetJSON)
 }
 
 // DeleteAsset deletes an given asset from the world state.
 func (s *SmartContract) DeleteAsset(ctx contractapi.TransactionContextInterface, id string) error {
-	exists, err := s.AssetExists(ctx, id)
+	assetJSON, err := s.readState(ctx, id)
 	if err != nil {
 		return err
 	}
-	if !exists {
-		return fmt.Errorf("the asset %s does not exist", id)
-	}
 
+	ctx.GetStub().SetEvent("DeleteAsset", assetJSON)
 	return ctx.GetStub().DelState(id)
-}
-
-// AssetExists returns true when asset with given ID exists in world state
-func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return false, fmt.Errorf("failed to read from world state: %v", err)
-	}
-
-	return assetJSON != nil, nil
 }
 
 // TransferAsset updates the owner field of asset with given id in world state, and returns the old owner.
@@ -239,11 +232,11 @@ func (s *SmartContract) GetAssetRecords(ctx contractapi.TransactionContextInterf
 		}
 
 		timestampProto := response.Timestamp
-        err = timestampProto.CheckValid()
-        if err != nil {
-            return nil, err
-        }
-        timestamp := timestampProto.AsTime()
+		err = timestampProto.CheckValid()
+		if err != nil {
+			return nil, err
+		}
+		timestamp := timestampProto.AsTime()
 
 		record := HistoryQueryResult{
 			TxId:      response.TxId,
