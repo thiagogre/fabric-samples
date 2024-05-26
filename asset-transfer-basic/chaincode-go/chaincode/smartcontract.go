@@ -182,7 +182,7 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 	}
 	defer resultsIterator.Close()
 
-	var records []interface{}
+	records := []interface{}{}
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
@@ -212,7 +212,7 @@ func (s *SmartContract) GetAssetRecords(ctx contractapi.TransactionContextInterf
 	}
 	defer resultsIterator.Close()
 
-	var records []interface{}
+	records := []interface{}{}
 	for resultsIterator.HasNext() {
 		response, err := resultsIterator.Next()
 		if err != nil {
