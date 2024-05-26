@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"log"
@@ -34,7 +35,14 @@ func Initialize(setup OrgSetup) (*OrgSetup, error) {
 		panic(err)
 	}
 	setup.Gateway = *gateway
+
+	// Context used for event listening
+	ctx, cancel := context.WithCancel(context.Background())
+	setup.Context = ctx
+	setup.CancelContext = cancel
+
 	log.Println("Initialization complete")
+
 	return &setup, nil
 }
 

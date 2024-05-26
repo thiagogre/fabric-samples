@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -11,15 +12,17 @@ import (
 
 // OrgSetup contains organization's config to interact with the network.
 type OrgSetup struct {
-	OrgName      string
-	MSPID        string
-	CryptoPath   string
-	CertPath     string
-	KeyPath      string
-	TLSCertPath  string
-	PeerEndpoint string
-	GatewayPeer  string
-	Gateway      client.Gateway
+	OrgName       string
+	MSPID         string
+	CryptoPath    string
+	CertPath      string
+	KeyPath       string
+	TLSCertPath   string
+	PeerEndpoint  string
+	GatewayPeer   string
+	Gateway       client.Gateway
+	Context       context.Context
+	CancelContext context.CancelFunc
 }
 
 // Serve starts http web server.
