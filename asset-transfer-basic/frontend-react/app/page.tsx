@@ -18,6 +18,11 @@ const App = () => {
 					</Button>
 				</div>
 				<div className="mt-8 flex flex-col items-center space-y-4">
+					<Button onClick={() => router.push("/partner")}>
+						Loja do Parceiro de distribuição
+					</Button>
+				</div>
+				<div className="mt-8 flex flex-col items-center space-y-4">
 					<Button onClick={() => router.push("/events")}>
 						Events
 					</Button>

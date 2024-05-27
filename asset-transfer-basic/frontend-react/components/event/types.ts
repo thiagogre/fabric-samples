@@ -1,4 +1,4 @@
-type Event = {
+type EventProps = {
 	BlockNumber: number;
 	TransactionID: string;
 	ChaincodeName: string;
@@ -6,4 +6,4 @@ type Event = {
 	Payload: string;
 };
 
-export type { Event };
+export type { EventProps };

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Event as EventType } from "./types";
+import type { EventProps } from "./types";
 
 const parsePayload = (payload: string): string => {
 	try {
@@ -11,7 +11,7 @@ const parsePayload = (payload: string): string => {
 	}
 };
 
-const Event = (props: EventType & { isBlockHidden?: boolean }) => {
+const Event = (props: EventProps & { isBlockHidden?: boolean }) => {
 	const {
 		BlockNumber,
 		TransactionID,
@@ -22,7 +22,7 @@ const Event = (props: EventType & { isBlockHidden?: boolean }) => {
 	} = props;
 
 	return (
-		<div className="flex-1 border border-gray-300 rounded-lg p-4 m-2 bg-white shadow-md">
+		<div className="flex-1 border border-gray-300 rounded-lg p-4 bg-white shadow-md">
 			{!isBlockHidden && (
 				<h2 className="text-lg font-semibold mb-2">
 					Block Number: {BlockNumber}
