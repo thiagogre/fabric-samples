@@ -26,12 +26,12 @@ type OrgSetup struct {
 }
 
 // Serve starts http web server.
-func Serve(setups OrgSetup) {
+func Serve(setup OrgSetup) {
 	// Enable CORS middleware
 	handler := cors.Default().Handler(http.DefaultServeMux)
 
-	http.HandleFunc("/query", setups.Query)
-	http.HandleFunc("/invoke", setups.Invoke)
+	http.HandleFunc("/query", setup.Query)
+	http.HandleFunc("/invoke", setup.Invoke)
 	http.HandleFunc("/events", Events)
 	http.HandleFunc("/identity", Identity)
 
