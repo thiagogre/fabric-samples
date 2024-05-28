@@ -13,3 +13,5 @@ organizations/peerOrganizations/*
 system-genesis-block/*
 *.tar.gz
 log.txt
+
+addOrg3/fabric-ca/org3/*
