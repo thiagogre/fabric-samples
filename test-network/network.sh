@@ -6,7 +6,7 @@
 #
 
 # This script brings up a Hyperledger Fabric network for testing smart contracts
-# and applications. The test network consists of two organizations with one
+# and applications. The test network consists of organizations with one
 # peer each, and a single node Raft ordering service. Users can also use this
 # script to create a channel deploy a chaincode on the channel
 #
@@ -23,16 +23,16 @@ export FABRIC_CFG_PATH=${PWD}/configtx
 export VERBOSE=false
 
 # push to the required directory & set a trap to go back if needed
-pushd ${ROOTDIR} > /dev/null
+pushd ${ROOTDIR} >/dev/null
 trap "popd > /dev/null" EXIT
 
 . scripts/utils.sh
 
 : ${CONTAINER_CLI:="docker"}
-if command -v ${CONTAINER_CLI}-compose > /dev/null 2>&1; then
-    : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI}-compose"}
+if command -v ${CONTAINER_CLI}-compose >/dev/null 2>&1; then
+  : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI}-compose"}
 else
-    : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI} compose"}
+  : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI} compose"}
 fi
 infoln "Using ${CONTAINER_CLI} and ${CONTAINER_CLI_COMPOSE}"
 
@@ -61,7 +61,7 @@ NONWORKING_VERSIONS="^1\.0\. ^1\.1\. ^1\.2\. ^1\.3\. ^1\.4\."
 # of go or other items could be added.
 function checkPrereqs() {
   ## Check if your have cloned the peer binaries and configuration files.
-  peer version > /dev/null 2>&1
+  peer version >/dev/null 2>&1
 
   if [[ $? -ne 0 || ! -d "../config" ]]; then
     errorln "Peer binary and configuration files not found.."
@@ -96,8 +96,8 @@ function checkPrereqs() {
 
   ## check for cfssl binaries
   if [ "$CRYPTO" == "cfssl" ]; then
-  
-    cfssl version > /dev/null 2>&1
+
+    cfssl version >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
       errorln "cfssl binary not found.."
       errorln
@@ -110,7 +110,7 @@ function checkPrereqs() {
   ## Check for fabric-ca
   if [ "$CRYPTO" == "Certificate Authorities" ]; then
 
-    fabric-ca-client version > /dev/null 2>&1
+    fabric-ca-client version >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
       errorln "fabric-ca-client binary not found.."
       errorln
@@ -168,7 +168,6 @@ function createOrgs() {
     infoln "Generating certificates using cryptogen tool"
 
     infoln "Creating Org1 Identities"
-
     set -x
     cryptogen generate --config=./organizations/cryptogen/crypto-config-org1.yaml --output="organizations"
     res=$?
@@ -178,7 +177,6 @@ function createOrgs() {
     fi
 
     infoln "Creating Org2 Identities"
-
     set -x
     cryptogen generate --config=./organizations/cryptogen/crypto-config-org2.yaml --output="organizations"
     res=$?
@@ -187,8 +185,16 @@ function createOrgs() {
       fatalln "Failed to generate certificates..."
     fi
 
-    infoln "Creating Orderer Org Identities"
+    infoln "Creating Org3 Identities"
+    set -x
+    cryptogen generate --config=./organizations/cryptogen/crypto-config-org3.yaml --output="organizations"
+    res=$?
+    { set +x; } 2>/dev/null
+    if [ $res -ne 0 ]; then
+      fatalln "Failed to generate certificates..."
+    fi
 
+    infoln "Creating Orderer Org Identities"
     set -x
     cryptogen generate --config=./organizations/cryptogen/crypto-config-orderer.yaml --output="organizations"
     res=$?
@@ -212,23 +218,29 @@ function createOrgs() {
     peer_cert peer peer0.org2.example.com org2
     peer_cert admin Admin@org2.example.com org2
 
+    #function_name cert-type   CN   org
+    peer_cert peer peer0.org3.example.com org3
+    peer_cert admin Admin@org3.example.com org3
+
     infoln "Creating Orderer Org Identities"
-    #function_name cert-type   CN   
+    #function_name cert-type   CN
     orderer_cert orderer orderer.example.com
     orderer_cert admin Admin@example.com
 
-  fi 
+  fi
 
   # Create crypto material using Fabric CA
   if [ "$CRYPTO" == "Certificate Authorities" ]; then
     infoln "Generating certificates using Fabric CA"
+
     ${CONTAINER_CLI_COMPOSE} -f compose/$COMPOSE_FILE_CA -f compose/$CONTAINER_CLI/${CONTAINER_CLI}-$COMPOSE_FILE_CA up -d 2>&1
 
     . organizations/fabric-ca/registerEnroll.sh
 
-    while :
-    do
-      if [ ! -f "organizations/fabric-ca/org1/tls-cert.pem" ]; then
+    while :; do
+      if [ ! -f "organizations/fabric-ca/org1/tls-cert.pem" ] ||
+        [ ! -f "organizations/fabric-ca/org2/tls-cert.pem" ] ||
+        [ ! -f "organizations/fabric-ca/org3/tls-cert.pem" ]; then
         sleep 1
       else
         break
@@ -236,17 +248,16 @@ function createOrgs() {
     done
 
     infoln "Creating Org1 Identities"
-
-    createOrg1
+    createOrg org1
 
     infoln "Creating Org2 Identities"
+    createOrg org2
 
-    createOrg2
+    infoln "Creating Org3 Identities"
+    createOrg org3
 
     infoln "Creating Orderer Org Identities"
-
     createOrderer
-
   fi
 
   infoln "Generating CCP files for Org1 and Org2"
@@ -311,7 +322,7 @@ function createChannel() {
 
   local bft_true=$1
 
-  if ! $CONTAINER_CLI info > /dev/null 2>&1 ; then
+  if ! $CONTAINER_CLI info >/dev/null 2>&1; then
     fatalln "$CONTAINER_CLI network is required to be running to create a channel"
   fi
 
@@ -326,7 +337,7 @@ function createChannel() {
 
   [[ $len -lt 4 ]] || [[ ! -d "organizations/peerOrganizations" ]] && bringUpNetwork="true" || echo "Network Running Already"
 
-  if [ $bringUpNetwork == "true"  ]; then
+  if [ $bringUpNetwork == "true" ]; then
     infoln "Bringing up network"
     networkUp
   fi
@@ -335,7 +346,6 @@ function createChannel() {
   # to create the channel creation transaction and the anchor peer updates.
   scripts/createChannel.sh $CHANNEL_NAME $CLI_DELAY $MAX_RETRY $VERBOSE $bft_true
 }
-
 
 ## Call the script to deploy a chaincode to the channel
 function deployCC() {
@@ -386,7 +396,7 @@ function listChaincode() {
 
 }
 
-## Call the script to invoke 
+## Call the script to invoke
 function invokeChaincode() {
 
   export FABRIC_CFG_PATH=${PWD}/../config
@@ -400,11 +410,11 @@ function invokeChaincode() {
 
 }
 
-## Call the script to query chaincode 
+## Call the script to query chaincode
 function queryChaincode() {
 
   export FABRIC_CFG_PATH=${PWD}/../config
-  
+
   . scripts/envVar.sh
   . scripts/ccutils.sh
 
@@ -414,26 +424,19 @@ function queryChaincode() {
 
 }
 
-
 # Tear down running network
 function networkDown() {
   local temp_compose=$COMPOSE_FILE_BASE
-  COMPOSE_FILE_BASE=compose-bft-test-net.yaml
+  COMPOSE_FILE_BASE=compose-test-net.yaml
   COMPOSE_BASE_FILES="-f compose/${COMPOSE_FILE_BASE} -f compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_BASE}"
   COMPOSE_COUCH_FILES="-f compose/${COMPOSE_FILE_COUCH} -f compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_COUCH}"
   COMPOSE_CA_FILES="-f compose/${COMPOSE_FILE_CA} -f compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_CA}"
   COMPOSE_FILES="${COMPOSE_BASE_FILES} ${COMPOSE_COUCH_FILES} ${COMPOSE_CA_FILES}"
 
-  # stop org3 containers also in addition to org1 and org2, in case we were running sample to add org3
-  COMPOSE_ORG3_BASE_FILES="-f addOrg3/compose/${COMPOSE_FILE_ORG3_BASE} -f addOrg3/compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_ORG3_BASE}"
-  COMPOSE_ORG3_COUCH_FILES="-f addOrg3/compose/${COMPOSE_FILE_ORG3_COUCH} -f addOrg3/compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_ORG3_COUCH}"
-  COMPOSE_ORG3_CA_FILES="-f addOrg3/compose/${COMPOSE_FILE_ORG3_CA} -f addOrg3/compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_ORG3_CA}"
-  COMPOSE_ORG3_FILES="${COMPOSE_ORG3_BASE_FILES} ${COMPOSE_ORG3_COUCH_FILES} ${COMPOSE_ORG3_CA_FILES}"
-
   if [ "${CONTAINER_CLI}" == "docker" ]; then
-    DOCKER_SOCK=$DOCKER_SOCK ${CONTAINER_CLI_COMPOSE} ${COMPOSE_FILES} ${COMPOSE_ORG3_FILES} down --volumes --remove-orphans
+    DOCKER_SOCK=$DOCKER_SOCK ${CONTAINER_CLI_COMPOSE} ${COMPOSE_FILES} down --volumes --remove-orphans
   elif [ "${CONTAINER_CLI}" == "podman" ]; then
-    ${CONTAINER_CLI_COMPOSE} ${COMPOSE_FILES} ${COMPOSE_ORG3_FILES} down --volumes
+    ${CONTAINER_CLI_COMPOSE} ${COMPOSE_FILES} down --volumes
   else
     fatalln "Container CLI  ${CONTAINER_CLI} not supported"
   fi
@@ -443,7 +446,7 @@ function networkDown() {
   # Don't remove the generated artifacts -- note, the ledgers are always removed
   if [ "$MODE" != "restart" ]; then
     # Bring down the network, deleting the volumes
-    ${CONTAINER_CLI} volume rm docker_orderer.example.com docker_peer0.org1.example.com docker_peer0.org2.example.com
+    ${CONTAINER_CLI} volume rm docker_orderer.example.com docker_peer0.org1.example.com docker_peer0.org2.example.com docker_peer0.org3.example.com
     #Cleanup the chaincode containers
     clearContainers
     #Cleanup images
@@ -453,8 +456,8 @@ function networkDown() {
     ## remove fabric ca artifacts
     ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/org1/msp organizations/fabric-ca/org1/tls-cert.pem organizations/fabric-ca/org1/ca-cert.pem organizations/fabric-ca/org1/IssuerPublicKey organizations/fabric-ca/org1/IssuerRevocationPublicKey organizations/fabric-ca/org1/fabric-ca-server.db'
     ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/org2/msp organizations/fabric-ca/org2/tls-cert.pem organizations/fabric-ca/org2/ca-cert.pem organizations/fabric-ca/org2/IssuerPublicKey organizations/fabric-ca/org2/IssuerRevocationPublicKey organizations/fabric-ca/org2/fabric-ca-server.db'
+    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/org3/msp organizations/fabric-ca/org3/tls-cert.pem organizations/fabric-ca/org3/ca-cert.pem organizations/fabric-ca/org3/IssuerPublicKey organizations/fabric-ca/org3/IssuerRevocationPublicKey organizations/fabric-ca/org3/fabric-ca-server.db'
     ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/ordererOrg/msp organizations/fabric-ca/ordererOrg/tls-cert.pem organizations/fabric-ca/ordererOrg/ca-cert.pem organizations/fabric-ca/ordererOrg/IssuerPublicKey organizations/fabric-ca/ordererOrg/IssuerRevocationPublicKey organizations/fabric-ca/ordererOrg/fabric-ca-server.db'
-    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf addOrg3/fabric-ca/org3/msp addOrg3/fabric-ca/org3/tls-cert.pem addOrg3/fabric-ca/org3/ca-cert.pem addOrg3/fabric-ca/org3/IssuerPublicKey addOrg3/fabric-ca/org3/IssuerRevocationPublicKey addOrg3/fabric-ca/org3/fabric-ca-server.db'
     # remove channel and script artifacts
     ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf channel-artifacts log.txt *.tar.gz'
   fi
@@ -486,7 +489,7 @@ BFT=0
 # Parse commandline args
 
 ## Parse mode
-if [[ $# -lt 1 ]] ; then
+if [[ $# -lt 1 ]]; then
   printHelp
   exit 0
 else
@@ -501,12 +504,12 @@ if [ "$MODE" == "cc" ] && [[ $# -lt 1 ]]; then
 fi
 
 # parse subcommands if used
-if [[ $# -ge 1 ]] ; then
+if [[ $# -ge 1 ]]; then
   key="$1"
   # check for the createChannel subcommand
   if [[ "$key" == "createChannel" ]]; then
-      export MODE="createChannel"
-      shift
+    export MODE="createChannel"
+    shift
   # check for the cc command
   elif [[ "$MODE" == "cc" ]]; then
     if [ "$1" != "-h" ]; then
@@ -516,101 +519,100 @@ if [[ $# -ge 1 ]] ; then
   fi
 fi
 
-
 # parse flags
 
-while [[ $# -ge 1 ]] ; do
+while [[ $# -ge 1 ]]; do
   key="$1"
   case $key in
-  -h )
+  -h)
     printHelp $MODE
     exit 0
     ;;
-  -c )
+  -c)
     CHANNEL_NAME="$2"
     shift
     ;;
-  -bft )
+  -bft)
     BFT=1
     ;;
-  -ca )
+  -ca)
     CRYPTO="Certificate Authorities"
     ;;
-  -cfssl )
+  -cfssl)
     CRYPTO="cfssl"
     ;;
-  -r )
+  -r)
     MAX_RETRY="$2"
     shift
     ;;
-  -d )
+  -d)
     CLI_DELAY="$2"
     shift
     ;;
-  -s )
+  -s)
     DATABASE="$2"
     shift
     ;;
-  -ccl )
+  -ccl)
     CC_SRC_LANGUAGE="$2"
     shift
     ;;
-  -ccn )
+  -ccn)
     CC_NAME="$2"
     shift
     ;;
-  -ccv )
+  -ccv)
     CC_VERSION="$2"
     shift
     ;;
-  -ccs )
+  -ccs)
     CC_SEQUENCE="$2"
     shift
     ;;
-  -ccp )
+  -ccp)
     CC_SRC_PATH="$2"
     shift
     ;;
-  -ccep )
+  -ccep)
     CC_END_POLICY="$2"
     shift
     ;;
-  -cccg )
+  -cccg)
     CC_COLL_CONFIG="$2"
     shift
     ;;
-  -cci )
+  -cci)
     CC_INIT_FCN="$2"
     shift
     ;;
-  -ccaasdocker )
+  -ccaasdocker)
     CCAAS_DOCKER_RUN="$2"
     shift
     ;;
-  -verbose )
+  -verbose)
     VERBOSE=true
     ;;
-  -org )
+  -org)
     ORG="$2"
     shift
     ;;
-  -i )
+  -i)
     IMAGETAG="$2"
     shift
     ;;
-  -cai )
+  -cai)
     CA_IMAGETAG="$2"
     shift
     ;;
-  -ccic )
+  -ccic)
     CC_INVOKE_CONSTRUCTOR="$2"
     shift
     ;;
-  -ccqc )
+  -ccqc)
     CC_QUERY_CONSTRUCTOR="$2"
     shift
-    ;;    
-  * )
+    ;;
+  *)
     errorln "Unknown flag: $key"
     printHelp
     exit 1

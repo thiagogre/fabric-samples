@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 )
 
@@ -24,17 +23,8 @@ func Identity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentDir, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Error getting current working directory:", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	scriptPath := currentDir + "/scripts/registerEnrollIdentity.sh"
-
 	// Command to execute the shell script
-	cmd := exec.Command("/bin/bash", scriptPath, identityRequest.Username)
+	cmd := exec.Command("/bin/bash", "../../test-network/registerEnrollIdentity.sh", identityRequest.Username)
 
 	// Run the command and capture the output
 	output, err := cmd.CombinedOutput()

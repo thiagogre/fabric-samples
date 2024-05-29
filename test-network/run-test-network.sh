@@ -38,29 +38,17 @@ run_command() {
 create_identities() {
     local org="$1"
 
-    cd ../asset-transfer-basic/rest-api-go/scripts || {
-        display_message "ERROR" "Failed to change directory"
-        exit 1
-    }
-
     local users=("BackendClient" "TestUser")
+    pwd
     for user in "${users[@]}"; do
-        ./registerEnrollIdentity.sh "$user" "$org"
-        display_message "SUCCESS" "Registered and enrolled: $user"
+        run_command "./registerEnrollIdentity.sh $user $org"
+        display_message "SUCCESS" "Registered and enrolled: $user at $org"
     done
-
-    cd - >/dev/null || {
-        display_message "ERROR" "Failed to return to previous directory"
-        exit 1
-    }
 }
 
 # Bring down the network, then bring it up with certificate authority, a channel and CouchDB
 run_command "./network.sh down"
-run_command "./network.sh up createChannel -ca -s couchdb"
-
-# Add Org3
-run_command "cd addOrg3 && ./addOrg3.sh up -ca -s couchdb && cd .."
+run_command "./network.sh up createChannel -c mychannel -r 10 -d 3 -verbose -ca -s couchdb"
 
 # Deploy the chaincode
 run_command "./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go"
@@ -68,3 +56,12 @@ run_command "./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chain
 display_message "INFO" "Creating identities..."
 create_identities org1
 create_identities org2
+create_identities org3
+
+run_command "./getEntities.sh org1"
+run_command "./getEntities.sh org2"
+run_command "./getEntities.sh org3"
+
+docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+run_command "./monitordocker.sh"

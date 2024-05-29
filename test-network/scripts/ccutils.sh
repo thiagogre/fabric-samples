@@ -216,7 +216,7 @@ function resolveSequence() {
   # if the committed sequence and the approved sequence match, then increment the sequence
   # otherwise, use the approved sequence
   if [ $COMMITTED_CC_SEQUENCE == $APPROVED_CC_SEQUENCE ]; then
-    CC_SEQUENCE=$((COMMITTED_CC_SEQUENCE+1))
+    CC_SEQUENCE=$((COMMITTED_CC_SEQUENCE + 1))
   else
     CC_SEQUENCE=$APPROVED_CC_SEQUENCE
   fi
@@ -277,8 +277,7 @@ listAllCommitted() {
     COUNTER=$(expr $COUNTER + 1)
   done
   if test $rc -eq 0; then
-    for channel in $CHANNEL_LIST
-    do
+    for channel in $CHANNEL_LIST; do
       queryCommittedOnChannel "$channel"
     done
   else
@@ -292,7 +291,7 @@ chaincodeInvoke() {
   CHANNEL=$2
   CC_NAME=$3
   CC_INVOKE_CONSTRUCTOR=$4
-  
+
   infoln "Invoking on peer0.org${ORG} on channel '$CHANNEL_NAME'..."
   local rc=1
   local COUNTER=1
@@ -302,7 +301,7 @@ chaincodeInvoke() {
     sleep $DELAY
     infoln "Attempting to Invoke on peer0.org${ORG}, Retry after $DELAY seconds."
     set -x
-    peer chaincode invoke -o localhost:7050 -C $CHANNEL_NAME -n ${CC_NAME} -c ${CC_INVOKE_CONSTRUCTOR} --tls --cafile $ORDERER_CA  --peerAddresses localhost:7051 --tlsRootCertFiles $PEER0_ORG1_CA --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_ORG2_CA  >&log.txt
+    peer chaincode invoke -o localhost:7050 -C $CHANNEL_NAME -n ${CC_NAME} -c ${CC_INVOKE_CONSTRUCTOR} --tls --cafile $ORDERER_CA --peerAddresses localhost:7051 --tlsRootCertFiles $PEER0_ORG1_CA --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_ORG2_CA --peerAddresses localhost:11051 --tlsRootCertFiles $PEER0_ORG3_CA >&log.txt
     res=$?
     { set +x; } 2>/dev/null
     let rc=$res

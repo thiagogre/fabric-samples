@@ -4,8 +4,6 @@ USERNAME="$1"
 ORG="${2:-"org1"}"
 ABAC_ROLE="${3:-"null"}" # Attribute-based access control [insurer, claimValidator]
 
-cd ../../../test-network || exit 1
-
 export PATH=${PWD}/../bin:${PWD}:$PATH
 export FABRIC_CFG_PATH=$PWD/../config/
 export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/${ORG}.example.com/
@@ -21,6 +19,7 @@ register() {
 }
 
 enroll() {
+    # TODO: FIX THIS DUPLICATION
     declare -A ca_ports
     ca_ports["org1"]="7054"
     ca_ports["org2"]="8054"

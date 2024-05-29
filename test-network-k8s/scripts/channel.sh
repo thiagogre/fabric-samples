@@ -54,22 +54,22 @@ function register_org_admin() {
 
   echo "Registering org admin $username"
 
-  fabric-ca-client  register \
-    --id.name       ${id_name} \
-    --id.secret     ${id_secret} \
-    --id.type       ${type} \
-    --url           https://${ca_name}.${DOMAIN}:${NGINX_HTTPS_PORT} \
+  fabric-ca-client register \
+    --id.name ${id_name} \
+    --id.secret ${id_secret} \
+    --id.type ${type} \
+    --url https://${ca_name}.${DOMAIN}:${NGINX_HTTPS_PORT} \
     --tls.certfiles $TEMP_DIR/cas/${ca_name}/tlsca-cert.pem \
-    --mspdir        $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
-    --id.attrs      "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert"
+    --mspdir $TEMP_DIR/enrollments/${org}/users/${RCAADMIN_USER}/msp \
+    --id.attrs "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert"
 }
 
 function enroll_org_admins() {
   push_fn "Enrolling org Admin users"
 
-  enroll_org_admin orderer  org0 org0admin org0adminpw
-  enroll_org_admin peer     org1 org1admin org1adminpw
-  enroll_org_admin peer     org2 org2admin org2adminpw
+  enroll_org_admin orderer org0 org0admin org0adminpw
+  enroll_org_admin peer org1 org1admin org1adminpw
+  enroll_org_admin peer org2 org2admin org2adminpw
 
   pop_fn
 }
@@ -125,7 +125,7 @@ function create_msp_config_yaml() {
   local msp_dir=$3
   echo "Creating msp config ${msp_dir}/config.yaml with cert ${ca_cert_name}"
 
-  cat << EOF > ${msp_dir}/config.yaml
+  cat <<EOF >${msp_dir}/config.yaml
 NodeOUs:
   Enable: true
   ClientOUIdentifier:
@@ -170,16 +170,16 @@ function create_channel_org_MSP() {
   # extract the CA's signing authority from the CA/cainfo response
   curl -s \
     --cacert ${TEMP_DIR}/cas/${ca_name}/tlsca-cert.pem \
-    https://${ca_name}.${DOMAIN}:${NGINX_HTTPS_PORT}/cainfo \
-    | jq -r .result.CAChain \
-    | base64 -d \
-    > ${ORG_MSP_DIR}/cacerts/ca-signcert.pem
+    https://${ca_name}.${DOMAIN}:${NGINX_HTTPS_PORT}/cainfo |
+    jq -r .result.CAChain |
+    base64 -d \
+      >${ORG_MSP_DIR}/cacerts/ca-signcert.pem
 
   # extract the CA's TLS CA certificate from the cert-manager secret
-  kubectl -n $ns get secret ${ca_name}-tls-cert -o json \
-    | jq -r .data.\"ca.crt\" \
-    | base64 -d \
-    > ${ORG_MSP_DIR}/tlscacerts/tlsca-signcert.pem
+  kubectl -n $ns get secret ${ca_name}-tls-cert -o json |
+    jq -r .data.\"ca.crt\" |
+    base64 -d \
+      >${ORG_MSP_DIR}/tlscacerts/tlsca-signcert.pem
 
   # create an MSP config.yaml with the CA's signing certificate
   create_msp_config_yaml ${ca_name} ca-signcert.pem ${ORG_MSP_DIR}
@@ -196,20 +196,20 @@ function extract_orderer_tls_cert() {
   ORDERER_TLS_DIR=${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls
   mkdir -p $ORDERER_TLS_DIR/signcerts
 
-  kubectl -n $ns get secret ${org}-${orderer}-tls-cert -o json \
-    | jq -r .data.\"tls.crt\" \
-    | base64 -d \
-    > ${ORDERER_TLS_DIR}/signcerts/tls-cert.pem
+  kubectl -n $ns get secret ${org}-${orderer}-tls-cert -o json |
+    jq -r .data.\"tls.crt\" |
+    base64 -d \
+      >${ORDERER_TLS_DIR}/signcerts/tls-cert.pem
 }
 
 function create_genesis_block() {
   push_fn "Creating channel genesis block"
-  cat ${PWD}/config/org0/configtx-template.yaml | envsubst > ${TEMP_DIR}/configtx.yaml
+  cat ${PWD}/config/org0/configtx-template.yaml | envsubst >${TEMP_DIR}/configtx.yaml
   FABRIC_CFG_PATH=${TEMP_DIR} \
     configtxgen \
-      -profile      TwoOrgsApplicationGenesis \
-      -channelID    $CHANNEL_NAME \
-      -outputBlock  ${TEMP_DIR}/genesis_block.pb
+    -profile OrgsApplicationGenesis \
+    -channelID $CHANNEL_NAME \
+    -outputBlock ${TEMP_DIR}/genesis_block.pb
 
   # configtxgen -inspectBlock ${TEMP_DIR}/genesis_block.pb
 
@@ -238,11 +238,11 @@ function join_channel_orderer() {
   # of identity than the Docker Compose network, which transmits the orderer node's TLS key pair directly
   osnadmin channel join \
     --orderer-address ${org}-${orderer}-admin.${DOMAIN}:${NGINX_HTTPS_PORT} \
-    --ca-file         ${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls/signcerts/tls-cert.pem \
-    --client-cert     ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/signcerts/cert.pem \
-    --client-key      ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/keystore/key.pem \
-    --channelID       ${CHANNEL_NAME} \
-    --config-block    ${TEMP_DIR}/genesis_block.pb
+    --ca-file ${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls/signcerts/tls-cert.pem \
+    --client-cert ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/signcerts/cert.pem \
+    --client-key ${TEMP_DIR}/enrollments/${org}/users/${org}admin/msp/keystore/key.pem \
+    --channelID ${CHANNEL_NAME} \
+    --config-block ${TEMP_DIR}/genesis_block.pb
 }
 
 function join_channel_peers() {
@@ -268,9 +268,9 @@ function join_channel_peer() {
   export_peer_context $org $peer
 
   peer channel join \
-    --blockpath   ${TEMP_DIR}/genesis_block.pb \
-    --orderer     org0-orderer1.${DOMAIN} \
+    --blockpath ${TEMP_DIR}/genesis_block.pb \
+    --orderer org0-orderer1.${DOMAIN} \
     --connTimeout ${ORDERER_TIMEOUT} \
-    --tls         \
-    --cafile      ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
+    --tls \
+    --cafile ${TEMP_DIR}/channel-msp/ordererOrganizations/org0/orderers/org0-orderer1/tls/signcerts/tls-cert.pem
 }

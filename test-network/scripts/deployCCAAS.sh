@@ -24,10 +24,10 @@ VERBOSE=${12:-"false"}
 CCAAS_SERVER_PORT=9999
 
 : ${CONTAINER_CLI:="docker"}
-if command -v ${CONTAINER_CLI}-compose > /dev/null 2>&1; then
-    : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI}-compose"}
+if command -v ${CONTAINER_CLI}-compose >/dev/null 2>&1; then
+  : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI}-compose"}
 else
-    : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI} compose"}
+  : ${CONTAINER_CLI_COMPOSE:="${CONTAINER_CLI} compose"}
 fi
 infoln "Using ${CONTAINER_CLI} and ${CONTAINER_CLI_COMPOSE}"
 
@@ -60,8 +60,6 @@ elif [ ! -d "$CC_SRC_PATH" ]; then
   fatalln "Path to chaincode does not exist. Please provide different path."
 fi
 
-
-
 if [ "$CC_END_POLICY" = "NA" ]; then
   CC_END_POLICY=""
 else
@@ -86,7 +84,7 @@ packageChaincode() {
   label=${CC_NAME}_${CC_VERSION}
   mkdir -p "$tempdir/src"
 
-cat > "$tempdir/src/connection.json" <<CONN_EOF
+  cat >"$tempdir/src/connection.json" <<CONN_EOF
 {
   "address": "${address}",
   "dial_timeout": "10s",
@@ -94,22 +92,22 @@ cat > "$tempdir/src/connection.json" <<CONN_EOF
 }
 CONN_EOF
 
-   mkdir -p "$tempdir/pkg"
+  mkdir -p "$tempdir/pkg"
 
-cat << METADATA-EOF > "$tempdir/pkg/metadata.json"
+  cat <<METADATA-EOF >"$tempdir/pkg/metadata.json"
 {
     "type": "ccaas",
     "label": "$label"
 }
 METADATA-EOF
 
-    tar -C "$tempdir/src" -czf "$tempdir/pkg/code.tar.gz" .
-    tar -C "$tempdir/pkg" -czf "$CC_NAME.tar.gz" metadata.json code.tar.gz
-    rm -Rf "$tempdir"
+  tar -C "$tempdir/src" -czf "$tempdir/pkg/code.tar.gz" .
+  tar -C "$tempdir/pkg" -czf "$CC_NAME.tar.gz" metadata.json code.tar.gz
+  rm -Rf "$tempdir"
 
-    PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_NAME}.tar.gz)
-  
-    successln "Chaincode is packaged  ${address}"
+  PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_NAME}.tar.gz)
+
+  successln "Chaincode is packaged  ${address}"
 }
 
 buildDockerImages() {
@@ -136,24 +134,30 @@ startDockerContainer() {
   if [ "$CCAAS_DOCKER_RUN" = "true" ]; then
     infoln "Starting the Chaincode-as-a-Service docker container..."
     set -x
-    ${CONTAINER_CLI} run --rm -d --name peer0org1_${CC_NAME}_ccaas  \
-                  --network fabric_test \
-                  -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
-                  -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
-                    ${CC_NAME}_ccaas_image:latest
+    ${CONTAINER_CLI} run --rm -d --name peer0org1_${CC_NAME}_ccaas \
+      --network fabric_test \
+      -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
+      -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
+      ${CC_NAME}_ccaas_image:latest
 
-    ${CONTAINER_CLI} run  --rm -d --name peer0org2_${CC_NAME}_ccaas \
-                  --network fabric_test \
-                  -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
-                  -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
-                    ${CC_NAME}_ccaas_image:latest
+    ${CONTAINER_CLI} run --rm -d --name peer0org2_${CC_NAME}_ccaas \
+      --network fabric_test \
+      -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
+      -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
+      ${CC_NAME}_ccaas_image:latest
+
+    ${CONTAINER_CLI} run --rm -d --name peer0org3_${CC_NAME}_ccaas \
+      --network fabric_test \
+      -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
+      -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
+      ${CC_NAME}_ccaas_image:latest
     res=$?
     { set +x; } 2>/dev/null
     cat log.txt
     verifyResult $res "Failed to start the container container '${CC_NAME}_ccaas_image:latest' "
-    successln "Docker container started succesfully '${CC_NAME}_ccaas_image:latest'" 
+    successln "Docker container started succesfully '${CC_NAME}_ccaas_image:latest'"
   else
-  
+
     infoln "Not starting docker containers; these are the commands we would have run"
     infoln "    ${CONTAINER_CLI} run --rm -d --name peer0org1_${CC_NAME}_ccaas  \
                   --network fabric_test \
@@ -169,17 +173,19 @@ startDockerContainer() {
   fi
 }
 
-# Build the docker image 
+# Build the docker image
 buildDockerImages
 
 ## package the chaincode
 packageChaincode
 
-## Install chaincode on peer0.org1 and peer0.org2
+## Install chaincode on peer0.org1, peer0.org2 and peer0.org3
 infoln "Installing chaincode on peer0.org1..."
 installChaincode 1
 infoln "Install chaincode on peer0.org2..."
 installChaincode 2
+infoln "Install chaincode on peer0.org3..."
+installChaincode 3
 
 resolveSequence
 
@@ -191,23 +197,35 @@ approveForMyOrg 1
 
 ## check whether the chaincode definition is ready to be committed
 ## expect org1 to have approved and org2 not to
-checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": false"
-checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": false"
+checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": false" "\"Org3MSP\": false"
+checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": false" "\"Org3MSP\": false"
+checkCommitReadiness 3 "\"Org1MSP\": true" "\"Org2MSP\": false" "\"Org3MSP\": false"
 
 ## now approve also for org2
 approveForMyOrg 2
 
 ## check whether the chaincode definition is ready to be committed
 ## expect them both to have approved
-checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true"
-checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true"
+checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": false"
+checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": false"
+checkCommitReadiness 3 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": false"
+
+## now approve also for org3
+approveForMyOrg 3
+
+## check whether the chaincode definition is ready to be committed
+## expect them both to have approved
+checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": true"
+checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": true"
+checkCommitReadiness 3 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": true"
 
 ## now that we know for sure both orgs have approved, commit the definition
-commitChaincodeDefinition 1 2
+commitChaincodeDefinition 1 2 3
 
 ## query on both orgs to see that the definition committed successfully
 queryCommitted 1
 queryCommitted 2
+queryCommitted 3
 
 # start the container
 startDockerContainer
@@ -217,7 +235,7 @@ startDockerContainer
 if [ "$CC_INIT_FCN" = "NA" ]; then
   infoln "Chaincode initialization is not required"
 else
-  chaincodeInvokeInit 1 2
+  chaincodeInvokeInit 1 2 3
 fi
 
 exit 0

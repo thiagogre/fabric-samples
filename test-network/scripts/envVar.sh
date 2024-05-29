@@ -66,11 +66,10 @@ parsePeerConnectionParameters() {
     setGlobals $1
     PEER="peer0.org$1"
     ## Set peer addresses
-    if [ -z "$PEERS" ]
-    then
-	PEERS="$PEER"
+    if [ -z "$PEERS" ]; then
+      PEERS="$PEER"
     else
-	PEERS="$PEERS $PEER"
+      PEERS="$PEERS $PEER"
     fi
     PEER_CONN_PARMS=("${PEER_CONN_PARMS[@]}" --peerAddresses $CORE_PEER_ADDRESS)
     ## Set path to TLS certificate

@@ -54,7 +54,7 @@ FABRIC_CFG_PATH=$PWD/../config/
 . scripts/ccutils.sh
 
 function checkPrereqs() {
-  jq --version > /dev/null 2>&1
+  jq --version >/dev/null 2>&1
 
   if [[ $? -ne 0 ]]; then
     errorln "jq command not found..."
@@ -69,16 +69,16 @@ function checkPrereqs() {
 checkPrereqs
 
 ## package the chaincode
-./scripts/packageCC.sh $CC_NAME $CC_SRC_PATH $CC_SRC_LANGUAGE $CC_VERSION 
+./scripts/packageCC.sh $CC_NAME $CC_SRC_PATH $CC_SRC_LANGUAGE $CC_VERSION
 
 PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_NAME}.tar.gz)
 
 ## Install chaincode on peer0.org1, peer0.org2 and peer0.org3
 infoln "Installing chaincode on peer0.org1..."
 installChaincode 1
-infoln "Install chaincode on peer0.org2..."
+infoln "Installing chaincode on peer0.org2..."
 installChaincode 2
-infoln "Install chaincode on peer0.org3..."
+infoln "Installing chaincode on peer0.org3..."
 installChaincode 3
 
 resolveSequence
@@ -96,6 +96,7 @@ checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": false" "\"Org3MSP\": fa
 checkCommitReadiness 3 "\"Org1MSP\": true" "\"Org2MSP\": false" "\"Org3MSP\": false"
 
 ## now approve also for org2
+queryInstalled 2
 approveForMyOrg 2
 
 ## check whether the chaincode definition is ready to be committed
@@ -105,6 +106,7 @@ checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": fal
 checkCommitReadiness 3 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": false"
 
 ## now approve also for org3
+queryInstalled 3
 approveForMyOrg 3
 
 ## check whether the chaincode definition is ready to be committed

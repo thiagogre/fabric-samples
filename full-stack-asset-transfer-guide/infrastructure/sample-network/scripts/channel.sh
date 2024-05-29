@@ -17,8 +17,7 @@
 # limitations under the License.
 #
 
-  # todo: Refuse to overwrite an existing admin enrollment ?
-
+# todo: Refuse to overwrite an existing admin enrollment ?
 
 function channel_up() {
   set -x
@@ -39,7 +38,7 @@ function create_msp_config_yaml() {
   local msp_dir=$3
   echo "Creating msp config ${msp_dir}/config.yaml with cert ${ca_cert_name}"
 
-  cat << EOF > ${msp_dir}/config.yaml
+  cat <<EOF >${msp_dir}/config.yaml
 NodeOUs:
   Enable: true
   ClientOUIdentifier:
@@ -65,10 +64,10 @@ function get_connection_profile() {
 
   echo "writing $node_name connection profile to $connection_profile"
 
-  kubectl -n $NS get cm/${node_name}-connection-profile -o json \
-    | jq -r .binaryData.\"profile.json\" \
-    | base64 -d \
-    > ${connection_profile}
+  kubectl -n $NS get cm/${node_name}-connection-profile -o json |
+    jq -r .binaryData.\"profile.json\" |
+    base64 -d \
+      >${connection_profile}
 }
 
 function enroll_org_admin() {
@@ -102,7 +101,7 @@ function enroll_org_admin() {
   CA_PORT=$(echo ${CA_ENDPOINT} | cut -d/ -f3 | tr ':' '\n' | tail -1)
   CA_URL=https://${CA_AUTH}@${CA_HOST}:${CA_PORT}
 
-  jq -r .tls.cert $CONNECTION_PROFILE | base64 -d >& $CA_DIR/tls-cert.pem
+  jq -r .tls.cert $CONNECTION_PROFILE | base64 -d >&$CA_DIR/tls-cert.pem
 
   # enroll the admin user
   FABRIC_CA_CLIENT_HOME=${ORG_ADMIN_DIR} fabric-ca-client enroll --url ${CA_URL} --tls.certfiles ${CA_DIR}/tls-cert.pem
@@ -117,7 +116,6 @@ function enroll_org_admin() {
   # This is the private key used to endorse transactions using the admin's
   # public key.
   mv ${ORG_ADMIN_DIR}/msp/keystore/*_sk ${ORG_ADMIN_DIR}/msp/keystore/key.pem
-
 
   # enroll the admin user at the TLS CA - used for the channel admin API
   FABRIC_CA_CLIENT_HOME=${ORG_ADMIN_DIR} \
@@ -134,8 +132,9 @@ function enroll_org_admins() {
   push_fn "Enrolling org admin users"
 
   enroll_org_admin orderer org0 org0admin org0adminpw
-  enroll_org_admin peer    org1 org1admin org1adminpw
-  enroll_org_admin peer    org2 org2admin org2adminpw
+  enroll_org_admin peer org1 org1admin org1adminpw
+  enroll_org_admin peer org2 org2admin org2adminpw
+  enroll_org_admin peer org3 org3admin org3adminpw
 
   pop_fn
 }
@@ -151,8 +150,8 @@ function create_channel_org_msp() {
   mkdir -p ${ORG_MSP_DIR}/cacerts
   mkdir -p ${ORG_MSP_DIR}/tlscacerts
 
-  jq -r .ca.signcerts ${CA_DIR}/connection-profile.json | base64 -d >& ${ORG_MSP_DIR}/cacerts/ca-signcert.pem
-  jq -r .tlsca.signcerts ${CA_DIR}/connection-profile.json | base64 -d >& ${ORG_MSP_DIR}/tlscacerts/tlsca-signcert.pem
+  jq -r .ca.signcerts ${CA_DIR}/connection-profile.json | base64 -d >&${ORG_MSP_DIR}/cacerts/ca-signcert.pem
+  jq -r .tlsca.signcerts ${CA_DIR}/connection-profile.json | base64 -d >&${ORG_MSP_DIR}/tlscacerts/tlsca-signcert.pem
 
   create_msp_config_yaml ${org}-ca ca-signcert.pem ${ORG_MSP_DIR}
 }
@@ -163,6 +162,7 @@ function create_channel_msp() {
   create_channel_org_msp orderer org0
   create_channel_org_msp peer org1
   create_channel_org_msp peer org2
+  create_channel_org_msp peer org3
 
   extract_orderer_tls_cert org0 orderersnode1
   extract_orderer_tls_cert org0 orderersnode2
@@ -186,9 +186,9 @@ function extract_orderer_tls_cert() {
 
   mkdir -p $ORDERER_TLS_DIR/signcerts
 
-  jq -r .tls.signcerts ${CONNECTION_PROFILE} \
-    | base64 -d \
-    >& $ORDERER_TLS_DIR/signcerts/tls-cert.pem
+  jq -r .tls.signcerts ${CONNECTION_PROFILE} |
+    base64 -d \
+      >&$ORDERER_TLS_DIR/signcerts/tls-cert.pem
 }
 
 function create_genesis_block() {
@@ -199,15 +199,15 @@ function create_genesis_block() {
 
   # The channel configtx file needs to specify dynamic elements from the environment,
   # for instance, the ${INGRESS_DOMAIN} for ingress controller and service endpoints.
-  cat ${PWD}/config/configtx-template.yaml | envsubst > ${TEMP_DIR}/config/configtx.yaml
+  cat ${PWD}/config/configtx-template.yaml | envsubst >${TEMP_DIR}/config/configtx.yaml
 
   FABRIC_CFG_PATH=${TEMP_DIR}/config \
     configtxgen \
-      -profile      TwoOrgsApplicationGenesis \
-      -channelID    $CHANNEL_NAME \
-      -outputBlock  ${TEMP_DIR}/genesis_block.pb
+    -profile OrgsApplicationGenesis \
+    -channelID $CHANNEL_NAME \
+    -outputBlock ${TEMP_DIR}/genesis_block.pb
 
-#  configtxgen -inspectBlock ${TEMP_DIR}/genesis_block.pb
+  #  configtxgen -inspectBlock ${TEMP_DIR}/genesis_block.pb
 
   pop_fn
 }
@@ -235,16 +235,17 @@ function join_channel_orderer() {
 
   osnadmin channel join \
     --orderer-address ${NS}-${org}-${orderer}-admin.${INGRESS_DOMAIN} \
-    --ca-file         ${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls/signcerts/tls-cert.pem \
-    --client-cert     ${TEMP_DIR}/enrollments/${org}/users/${org}admin/tls/signcerts/cert.pem \
-    --client-key      ${TEMP_DIR}/enrollments/${org}/users/${org}admin/tls/keystore/key.pem \
-    --channelID       ${CHANNEL_NAME} \
-    --config-block    ${TEMP_DIR}/genesis_block.pb
+    --ca-file ${TEMP_DIR}/channel-msp/ordererOrganizations/${org}/orderers/${org}-${orderer}/tls/signcerts/tls-cert.pem \
+    --client-cert ${TEMP_DIR}/enrollments/${org}/users/${org}admin/tls/signcerts/cert.pem \
+    --client-key ${TEMP_DIR}/enrollments/${org}/users/${org}admin/tls/keystore/key.pem \
+    --channelID ${CHANNEL_NAME} \
+    --config-block ${TEMP_DIR}/genesis_block.pb
 }
 
 function join_channel_peers() {
   join_org_peers 1
   join_org_peers 2
+  join_org_peers 3
 }
 
 function join_org_peers() {
@@ -254,6 +255,7 @@ function join_org_peers() {
   # Join peers to channel
   join_channel_peer $orgnum 1
   join_channel_peer $orgnum 2
+  join_channel_peer $orgnum 3
 
   pop_fn
 }
@@ -265,5 +267,5 @@ function join_channel_peer() {
   export_peer_context $orgnum $peernum
 
   peer channel join \
-    --blockpath   ${TEMP_DIR}/genesis_block.pb
+    --blockpath ${TEMP_DIR}/genesis_block.pb
 }
