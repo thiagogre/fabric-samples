@@ -36,15 +36,16 @@ run_command() {
 }
 
 create_identities() {
+    local org="$1"
+
     cd ../asset-transfer-basic/rest-api-go/scripts || {
         display_message "ERROR" "Failed to change directory"
         exit 1
     }
 
-    local users=("BackendClient" "UserTest")
-
+    local users=("BackendClient" "TestUser")
     for user in "${users[@]}"; do
-        ./registerEnrollIdentity.sh "$user" &>/dev/null
+        ./registerEnrollIdentity.sh "$user" "$org"
         display_message "SUCCESS" "Registered and enrolled: $user"
     done
 
@@ -65,4 +66,5 @@ run_command "cd addOrg3 && ./addOrg3.sh up -ca -s couchdb && cd .."
 run_command "./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go"
 
 display_message "INFO" "Creating identities..."
-create_identities
+create_identities org1
+create_identities org2
