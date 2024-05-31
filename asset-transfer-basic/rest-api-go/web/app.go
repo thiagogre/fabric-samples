@@ -34,6 +34,7 @@ func Serve(setup OrgSetup) {
 	http.HandleFunc("/invoke", setup.Invoke)
 	http.HandleFunc("/events", Events)
 	http.HandleFunc("/identity", Identity)
+	http.HandleFunc("/auth", Auth)
 
 	fmt.Println("Listening (http://localhost:3001/)...")
 	if err := http.ListenAndServe(":3001", handler); err != nil {
