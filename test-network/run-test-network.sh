@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#
+#   This script has only been tested with Debian and GNOME Terminal
+#   Only the function 'run_command_in_new_tab' relies on it
+#
+
 display_message() {
     local RED='\033[31m'
     local GREEN='\033[32m'
@@ -35,6 +40,12 @@ run_command() {
     fi
 }
 
+run_command_in_new_tab() {
+    local command="$1"
+    local tab_name="$2"
+    gnome-terminal --tab --title="$tab_name" -- bash -c "$command; exec bash"
+}
+
 create_identities() {
     local org="$1"
 
@@ -48,7 +59,10 @@ create_identities() {
 
 # Bring down the network, then bring it up with certificate authority, a channel and CouchDB
 run_command "./network.sh down"
-run_command "./network.sh up createChannel -c mychannel -r 10 -d 3 -verbose -ca -s couchdb"
+
+run_command "./network.sh up createChannel -c mychannel -ca -r 10 -d 3 -verbose -s couchdb"
+
+run_command_in_new_tab "./monitordocker.sh" "Monitor Docker"
 
 # Deploy the chaincode
 run_command "./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go"
@@ -61,7 +75,3 @@ create_identities org3
 run_command "./getEntities.sh org1"
 run_command "./getEntities.sh org2"
 run_command "./getEntities.sh org3"
-
-docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"
-
-run_command "./monitordocker.sh"
