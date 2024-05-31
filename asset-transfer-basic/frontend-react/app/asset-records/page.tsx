@@ -72,31 +72,33 @@ const App = () => {
 			}
 		};
 
-		const timeout = setTimeout(runAssetFlow, 500);
-
-		return () => clearTimeout(timeout);
+		const timeout = setTimeout(runAssetFlow, 1);
 
 		// INFO: we can have more than one transaction per block
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
-		// runAssetFlow();
+		// const timeout = setTimeout(() => {
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// 	runAssetFlow();
+		// }, 1);
+
+		return () => clearTimeout(timeout);
 	}, []);
 
 	return (
