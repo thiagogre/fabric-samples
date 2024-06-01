@@ -1,24 +1,24 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 import { invoke, query } from "../../config/api";
 import { wait } from "../../utils/promise";
+import { uniqueId } from "../../utils/uniqueId";
 
 const App = () => {
 	const [data, setData] = useState<any>(null);
 
 	useEffect(() => {
 		const runAssetFlow = async () => {
-			const uniqueId = String(uuidv4());
+			const id = String(uniqueId());
 
 			try {
 				const postData = await invoke({
 					channelid: "mychannel",
 					chaincodeid: "basic",
 					function: "CreateAsset",
-					args: [uniqueId, "red", "54", "Tom", "13005"],
+					args: [id, "red", "54", "Tom", "13005"],
 				});
 
 				await wait(1000);
@@ -27,7 +27,7 @@ const App = () => {
 					channelid: "mychannel",
 					chaincodeid: "basic",
 					function: "UpdateAsset",
-					args: [uniqueId, "red", "54", "X", "13005"],
+					args: [id, "red", "54", "X", "13005"],
 				});
 
 				await wait(1000);
@@ -36,7 +36,7 @@ const App = () => {
 					channelid: "mychannel",
 					chaincodeid: "basic",
 					function: "UpdateAsset",
-					args: [uniqueId, "red", "54", "Y", "13005"],
+					args: [id, "red", "54", "Y", "13005"],
 				});
 
 				await wait(1000);
@@ -45,7 +45,7 @@ const App = () => {
 					channelid: "mychannel",
 					chaincodeid: "basic",
 					function: "UpdateAsset",
-					args: [uniqueId, "red", "54", "Z", "13005"],
+					args: [id, "red", "54", "Z", "13005"],
 				});
 
 				await wait(1000);
@@ -54,7 +54,7 @@ const App = () => {
 					channelid: "mychannel",
 					chaincodeid: "basic",
 					function: "DeleteAsset",
-					args: [uniqueId],
+					args: [id],
 				});
 
 				await wait(1000);
@@ -63,7 +63,7 @@ const App = () => {
 					channelid: "mychannel",
 					chaincodeid: "basic",
 					function: "GetAssetRecords",
-					args: [uniqueId],
+					args: [id],
 				});
 				setData(responseData);
 				console.log("POST request successful:", postData);

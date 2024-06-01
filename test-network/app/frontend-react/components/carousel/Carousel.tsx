@@ -1,15 +1,6 @@
 import React, { useReducer } from "react";
 
-interface CarouselProps {
-	images: string[];
-}
-
-type CarouselState = {
-	currentIndex: number;
-	images: string[];
-};
-
-type CarouselAction = { type: "PREV_IMAGE" } | { type: "NEXT_IMAGE" };
+import type { CarouselProps, CarouselAction, CarouselState } from "./types";
 
 const carouselReducer = (
 	state: CarouselState,
@@ -37,7 +28,7 @@ const carouselReducer = (
 	}
 };
 
-const Carousel: React.FC<CarouselProps> = ({ images }) => {
+const Carousel = ({ images }: CarouselProps) => {
 	const initialState: CarouselState = {
 		currentIndex: 0,
 		images: images,
