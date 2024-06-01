@@ -65,7 +65,7 @@ run_command "./network.sh up createChannel -c mychannel -ca -r 10 -d 3 -verbose 
 run_command_in_new_tab "./monitordocker.sh" "Monitor Docker"
 
 # Deploy the chaincode
-run_command "./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go"
+run_command "./network.sh deployCC -ccn basic -ccp ./app/chaincode-go -ccl go"
 
 display_message "INFO" "Creating identities..."
 create_identities org1
@@ -75,3 +75,7 @@ create_identities org3
 run_command "./getEntities.sh org1"
 run_command "./getEntities.sh org2"
 run_command "./getEntities.sh org3"
+
+run_command_in_new_tab "cd app/rest-api-go && go run main.go" "Rest API"
+
+run_command_in_new_tab "cd app/frontend-react && yarn dev" "Frontend"

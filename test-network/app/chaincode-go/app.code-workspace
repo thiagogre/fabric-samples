@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../frontend-react"
+		},
+		{
+			"path": "../rest-api-go"
+		}
+	],
+	"settings": {}
+}

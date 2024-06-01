@@ -21,7 +21,7 @@ type User struct {
 }
 
 const (
-	dbPath = "../../test-network/organizations/fabric-ca/org1/fabric-ca-server.db"
+	dbPath = "../../organizations/fabric-ca/org1/fabric-ca-server.db"
 )
 
 func CheckPasswordHash(password, hashedPassword string) bool {
@@ -44,7 +44,7 @@ func GetUserById(db *sql.DB, id string) (*User, error) {
 }
 
 func Auth(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Received a request")
+	fmt.Println("[AUTH] Received a request")
 
 	var authRequest AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
