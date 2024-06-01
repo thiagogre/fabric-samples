@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"rest-api-go/constants"
 )
 
 // IdentityRequest represents the structure of the JSON object containing identity request data.
@@ -23,16 +24,16 @@ func Identity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Command to execute the shell script
-	cmd := exec.Command("/bin/bash", "../../test-network/registerEnrollIdentity.sh", identityRequest.Username)
+	cmd := exec.Command("/bin/bash", "./registerEnrollIdentity.sh", identityRequest.Username)
+	cmd.Dir = constants.TestNetworkPath
 
-	// Run the command and capture the output
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println("Error executing script:", err)
-		fmt.Println("Script output:", string(output)) // Log script output
+		fmt.Println("Script output:", string(output))
 		return
 	}
+	fmt.Println("Script output:", string(output))
 
 	// Response struct
 	response := IdentityRequest{

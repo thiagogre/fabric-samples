@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"rest-api-go/constants"
 	"rest-api-go/web"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
@@ -12,7 +13,7 @@ import (
 
 func main() {
 	//Initialize setup for Org1
-	cryptoPath := "../../organizations/peerOrganizations/org1.example.com"
+	cryptoPath := constants.TestNetworkPath + "organizations/peerOrganizations/org1.example.com"
 	orgConfig := web.OrgSetup{
 		OrgName:      "Org1",
 		MSPID:        "Org1MSP",
